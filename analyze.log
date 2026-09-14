@@ -1,0 +1,80 @@
+分析: 全1177件 / 済0件 / 残り1177件 (model=gpt-5.4-mini)
+  20/1177 件分析完了
+  40/1177 件分析完了
+  60/1177 件分析完了
+  ! 取得失敗 https://afroresort.com/: HTTPSConnectionPool(host='afroresort.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='afroresort.com', port=443): Failed to resolve 'afroresort.com' ([Errno -2] Name or service not known)"))
+  80/1177 件分析完了
+  100/1177 件分析完了
+  120/1177 件分析完了
+  ! 取得失敗 https://bizful.net/: HTTPSConnectionPool(host='bizful.net', port=443): Read timed out. (read timeout=12)
+  ! 取得失敗 https://hudosan-service.jingas.jp/: HTTPSConnectionPool(host='hudosan-service.jingas.jp', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='hudosan-service.jingas.jp', port=443): Failed to resolve 'hudosan-service.jingas.jp' ([Errno -2] Name or service not known)"))
+  140/1177 件分析完了
+  160/1177 件分析完了
+  180/1177 件分析完了
+  200/1177 件分析完了
+  220/1177 件分析完了
+  240/1177 件分析完了
+  260/1177 件分析完了
+  280/1177 件分析完了
+  300/1177 件分析完了
+  320/1177 件分析完了
+  340/1177 件分析完了
+  360/1177 件分析完了
+  380/1177 件分析完了
+  400/1177 件分析完了
+  ! 取得失敗 https://www.doctor-voice.com/: HTTPSConnectionPool(host='www.doctor-voice.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='www.doctor-voice.com', port=443): Failed to resolve 'www.doctor-voice.com' ([Errno -2] Name or service not known)"))
+  ! 取得失敗 https://lforwardinc.com/: HTTPSConnectionPool(host='lforwardinc.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='lforwardinc.com', port=443): Failed to resolve 'lforwardinc.com' ([Errno -5] No address associated with hostname)"))
+  420/1177 件分析完了
+  440/1177 件分析完了
+  460/1177 件分析完了
+  480/1177 件分析完了
+  500/1177 件分析完了
+  520/1177 件分析完了
+  540/1177 件分析完了
+  560/1177 件分析完了
+  ! 取得失敗 https://carservice.rakuten.co.jp/magazine/: HTTPSConnectionPool(host='carservice.rakuten.co.jp', port=443): Max retries exceeded with url: /magazine/ (Caused by NameResolutionError("HTTPSConnection(host='carservice.rakuten.co.jp', port=443): Failed to resolve 'carservice.rakuten.co.jp' ([Errno -2] Name or service not known)"))
+  580/1177 件分析完了
+  ! 取得失敗 https://ademo.co.jp/: HTTPSConnectionPool(host='ademo.co.jp', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='ademo.co.jp', port=443): Failed to resolve 'ademo.co.jp' ([Errno -2] Name or service not known)"))
+  600/1177 件分析完了
+  620/1177 件分析完了
+  640/1177 件分析完了
+  660/1177 件分析完了
+  680/1177 件分析完了
+  ! 取得失敗 https://la-org.com/company/: 507 Server Error: Insufficient Storage for url: https://la-org.com/company/
+  ! 取得失敗 https://www.portfolio.la-org.com: 507 Server Error: Insufficient Storage for url: https://www.portfolio.la-org.com/
+  700/1177 件分析完了
+  720/1177 件分析完了
+  ! 取得失敗 https://フリーランスのリスティング広告.jp/: HTTPSConnectionPool(host='xn--u9jvfpb7ab2fze8gid0hg2ir931dtb6a.jp', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='xn--u9jvfpb7ab2fze8gid0hg2ir931dtb6a.jp', port=443): Failed to resolve 'xn--u9jvfpb7ab2fze8gid0hg2ir931dtb6a.jp' ([Errno -2] Name or service not known)"))
+  740/1177 件分析完了
+  ! 取得失敗 https://vgu.community: HTTPSConnectionPool(host='vgu.community', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='vgu.community', port=443): Failed to resolve 'vgu.community' ([Errno -2] Name or service not known)"))
+  760/1177 件分析完了
+  780/1177 件分析完了
+  ! 取得失敗 https://hageeee.com/: HTTPSConnectionPool(host='hageeee.com', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'hageeee.com'. (_ssl.c:1000)")))
+  800/1177 件分析完了
+  820/1177 件分析完了
+  840/1177 件分析完了
+  860/1177 件分析完了
+  ! 取得失敗 https://giftspace.jp/: HTTPSConnectionPool(host='giftspace.jp', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='giftspace.jp', port=443): Failed to resolve 'giftspace.jp' ([Errno -2] Name or service not known)"))
+  880/1177 件分析完了
+  ! 取得失敗 https://markezine.jp/author/1076: 403 Client Error: Forbidden for url: https://markezine.jp/author/1076
+  900/1177 件分析完了
+  920/1177 件分析完了
+  940/1177 件分析完了
+  ! 取得失敗 https://hyuga-group.com/company/: HTTPSConnectionPool(host='hyuga-group.com', port=443): Read timed out. (read timeout=12)
+  ! 取得失敗 https://angelnumber33.net/: HTTPSConnectionPool(host='angelnumber33.net', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='angelnumber33.net', port=443): Failed to resolve 'angelnumber33.net' ([Errno -2] Name or service not known)"))
+  ! 取得失敗 https://virtual-currency-iroha.com/: HTTPSConnectionPool(host='virtual-currency-iroha.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("HTTPSConnection(host='virtual-currency-iroha.com', port=443): Failed to resolve 'virtual-currency-iroha.com' ([Errno -2] Name or service not known)"))
+  960/1177 件分析完了
+  ! 取得失敗 https://caree-r.com/pharmacist-change-job/3235/: HTTPSConnectionPool(host='caree-r.com', port=443): Max retries exceeded with url: /pharmacist-change-job/3235/ (Caused by NameResolutionError("HTTPSConnection(host='caree-r.com', port=443): Failed to resolve 'caree-r.com' ([Errno -2] Name or service not known)"))
+  ! 取得失敗 https://caree-r.com/change-job-agent/1128/: HTTPSConnectionPool(host='caree-r.com', port=443): Max retries exceeded with url: /change-job-agent/1128/ (Caused by NameResolutionError("HTTPSConnection(host='caree-r.com', port=443): Failed to resolve 'caree-r.com' ([Errno -2] Name or service not known)"))
+  980/1177 件分析完了
+  1000/1177 件分析完了
+  1020/1177 件分析完了
+  1040/1177 件分析完了
+  1060/1177 件分析完了
+  1080/1177 件分析完了
+  1100/1177 件分析完了
+  1120/1177 件分析完了
+  1140/1177 件分析完了
+  1160/1177 件分析完了
+  1177/1177 件分析完了
+CSV出力: /home/nero/scrapping projects/maikan/output/meikan_freelancers.csv (1177件, 分析済 1177件)
