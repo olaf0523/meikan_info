@@ -95,6 +95,30 @@ const PATHS = {
       <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2" />
+    </>
+  ),
+  backspace: (
+    <>
+      <path d="M20 6H9l-6 6 6 6h11a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1Z" />
+      <path d="m12 9.5 5 5M17 9.5l-5 5" />
+    </>
+  ),
+  sound: (
+    <>
+      <path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    </>
+  ),
+  mute: (
+    <>
+      <path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z" />
+      <path d="m16 9.5 5 5M21 9.5l-5 5" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;

@@ -1,4 +1,5 @@
 import Icon from "@/components/Icon";
+import LockButton from "@/components/LockButton";
 import Ornament from "@/components/Ornament";
 
 type Stat = { label: string; value: number };
@@ -20,15 +21,18 @@ export default function Hero({ stats }: { stats: Stat[] }) {
               フリーランス名鑑 <span className="font-medium text-ink/70">データベース</span>
             </span>
           </div>
-          <a
-            href="https://freelance-meikan.com/freelance"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="gold-outline hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs text-ink/85 backdrop-blur transition hover:border-gold hover:text-gold-light sm:inline-flex"
-          >
-            freelance-meikan.com
-            <Icon name="external" className="size-3.5" />
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://freelance-meikan.com/freelance"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gold-outline hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs text-ink/85 backdrop-blur transition hover:border-gold hover:text-gold-light sm:inline-flex"
+            >
+              freelance-meikan.com
+              <Icon name="external" className="size-3.5" />
+            </a>
+            <LockButton />
+          </div>
         </nav>
 
         <p className="gold-outline mt-12 inline-flex animate-rise items-center gap-2 rounded-full px-3.5 py-1 text-xs font-medium text-ink/90 backdrop-blur sm:mt-16">

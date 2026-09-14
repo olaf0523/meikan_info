@@ -186,7 +186,7 @@ export default function FreelancerDirectory({ freelancers }: { freelancers: Free
   );
 
   return (
-    <div className="min-h-dvh">
+    <div className="app-shell min-h-dvh">
       <Hero stats={stats} />
 
       <main className="relative z-10 mx-auto -mt-24 max-w-7xl px-4 pb-20 sm:px-6">

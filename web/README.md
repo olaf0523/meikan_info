@@ -44,6 +44,21 @@ git add data/meikan_freelancers.csv && git commit -m "Update freelancer data" &&
 
 GitHub 連携なら push で自動デプロイされる。CLI の場合は `npx vercel --prod` を再実行する。
 
+## ロック画面 (PIN)
+
+- 未解錠のアクセスは `src/proxy.ts` がロック画面 (`/lock`) に差し替える。ページ本体・`/data/*`・アバター画像は解錠するまで返さない。
+- PIN は `/api/unlock` でサーバー側で照合し、成功すると HttpOnly Cookie を発行する (ブラウザを閉じると再びロック)。
+- コードには PIN 自体ではなく、PBKDF2 で導出した値のハッシュだけを置いている (`src/lib/lock.ts`)。
+- 画面右上の「ロック」ボタンで再ロックできる。
+
+### PIN を変更する
+
+```bash
+npm run hash-pin -- <新しいPIN>
+```
+
+出力された `LOCK_SALT` / `LOCK_VERIFIER` / `NEXT_PUBLIC_PIN_LENGTH` を Vercel の **Settings → Environment Variables** に追加して再デプロイする。
+
 ## 注意
 
 - アバターは Vercel の画像最適化経由で配信する。変換サイズは `next.config.ts` で 64/128/256px に絞り 30 日キャッシュしているため、1 人あたり最大 3 変換 (約 1,000 人で最大 3,000 変換程度)。

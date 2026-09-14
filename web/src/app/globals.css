@@ -157,6 +157,65 @@ html {
   scrollbar-color: rgb(214 178 106 / 0.45) transparent;
 }
 
+/* ------------------------------------------------ 解錠直後: 光の中からメイン画面が現れる */
+
+.unlock-reveal {
+  display: none;
+}
+
+html[data-unlocked] .unlock-reveal {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #fffdf6 0%, #fff1cf 42%, #f5d28e 100%);
+  animation: unlock-reveal 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes unlock-reveal {
+  0%,
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+html[data-unlocked] .site-bg {
+  animation: unlock-scene 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes unlock-scene {
+  from {
+    transform: scale(1.18);
+    filter: brightness(1.7) saturate(1.2);
+  }
+  to {
+    transform: none;
+    filter: none;
+  }
+}
+
+html[data-unlocked] .app-shell {
+  animation: unlock-content 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes unlock-content {
+  from {
+    opacity: 0.4;
+    transform: scale(1.06);
+    filter: blur(10px) brightness(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
 ::selection {
   background: rgb(226 190 116 / 0.35);
   color: #fff8e6;

@@ -8,7 +8,8 @@
     "dev": "node scripts/build-data.mjs && next dev",
     "build": "node scripts/build-data.mjs && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "hash-pin": "node scripts/hash-pin.mjs"
   },
   "dependencies": {
     "next": "16.3.5",
