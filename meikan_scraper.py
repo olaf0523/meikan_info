@@ -3,10 +3,11 @@
 スクレイピングし、OpenAI API でプロフィールを分析して CSV に出力する。
 
 使い方:
-    .venv/bin/python meikan_scraper.py scrape    # 一覧＋全プロフィール取得 (キー不要)
-    .venv/bin/python meikan_scraper.py analyze   # OpenAI で分析 (OPENAI_API_KEY 必須)
-    .venv/bin/python meikan_scraper.py export    # CSV 出力
-    .venv/bin/python meikan_scraper.py all       # 上記を順に実行
+    .venv/bin/python meikan_scraper.py scrape         # 一覧＋全プロフィール取得 (キー不要)
+    .venv/bin/python meikan_scraper.py analyze        # プロフィール分析 (職業・経歴・実績・会社)
+    .venv/bin/python meikan_scraper.py find-company   # 会社名はあるがURL不明の人をWeb検索で補完
+    .venv/bin/python meikan_scraper.py export         # CSV 出力
+    .venv/bin/python meikan_scraper.py all            # 上記を順に実行
 
 各段階はキャッシュ/JSONL に保存されるため、中断しても再実行で続きから再開できる。
 """
@@ -36,8 +37,11 @@ DATA_DIR = ROOT / "data"
 OUT_DIR = ROOT / "output"
 IDS_FILE = DATA_DIR / "ids.json"
 PROFILES_FILE = DATA_DIR / "profiles.jsonl"
-ANALYSIS_FILE = DATA_DIR / "analysis.jsonl"
+ANALYSIS_FILE = DATA_DIR / "analysis_sol.jsonl"
+COMPANY_SEARCH_FILE = DATA_DIR / "company_search.jsonl"
 CSV_FILE = OUT_DIR / "meikan_freelancers.csv"
+
+DEFAULT_MODEL = "gpt-5.6-sol"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -117,6 +121,10 @@ def read_jsonl(path):
 def append_jsonl(path, obj):
     with write_lock, path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(obj, ensure_ascii=False) + "\n")
+
+
+def is_blank(value):
+    return not value or re.match(r"^\s*(不明|なし|該当なし|記載なし)", value) is not None
 
 
 # ---------------------------------------------------------------- 1. 一覧取得
@@ -300,183 +308,281 @@ def fetch_company_context(profile):
     return pages
 
 
-# ------------------------------------------------------------- 4. OpenAI 分析
-ANALYSIS_PROMPT = """まず、プロフィールを具体的に分析してください。
-このフリーランスの主な業種は何であり、自身の職業における専門性はどの程度か、つまり技術的な側面ではどの程度のレベルか？
-このフリーランスが言及した自身の会社名は何か、その際の会社リンクは何か？
-また、会社の資本金はいくらで、会社数はいくつか？連絡先情報は何か？
+# ------------------------------------------------------------- 4. プロフィール分析
+ANALYSIS_PROMPT = """あなたはフリーランス人材のプロフィール調査を行うアナリストです。
+与えられたプロフィールを具体的に分析し、次の「最も必要な情報」だけを抽出してください。
 
-さらに、発注者・営業担当の視点で役立つ独自の分析（経験年数、主要実績、強み、想定顧客、事業形態、語学、リードとしての評価、アプローチ方法の提案）も行ってください。
+1. 職業: この人物の現在の職業・肩書きを一言で (例: 「株式会社〇〇 代表取締役 / Webマーケター」「フリーランスのフロントエンドエンジニア」)
+2. 現在の仕事内容: 現在どのような仕事・事業をしているかを具体的に
+3. 経歴: 学歴・勤務先・役職・独立/創業などを時系列で具体的に (年や期間が書かれていれば含める)
+4. 過去の実績: 支援社数、売上改善、開発したサービス名、取引先、受賞など、数値や固有名詞を含めて具体的に
+5. 専門性レベル: 経歴と実績から判断
+6. 会社: 本人が代表取締役・取締役・経営者・創業者などを務めている(または務めていた)会社。
+   「某株式会社の代表取締役」のように書かれていれば、その会社名と役職を抽出する。
+   本人が役員ではなく単に所属・勤務しているだけの会社は role に「所属」と書く。
+   会社リンクはプロフィール本文や会社サイト本文に URL が書かれている場合のみ記入する。
 
 【厳守事項】
-- 情報はプロフィール本文・構造化データ・添付の会社サイト本文に書かれている内容のみを根拠にすること。推測で会社名・URL・資本金・連絡先を作らないこと。
-- 記載がない項目は「不明」とすること（会社名がない場合は「なし」）。
-- 資本金・会社数は明記されている場合のみ記入し、出典（プロフィール/会社サイト）を併記すること。
-- 回答はすべて日本語。"""
+- 根拠はプロフィール本文・構造化データ・添付の会社サイト本文に書かれている内容のみ。推測で会社名・URL・実績を作らない。
+- 「某大手企業」「東証プライム企業」「大手広告代理店」のように社名が伏せられている・一般名詞の場合は companies に含めない (経歴には書いてよい)。
+- 記載がない項目は空文字にする (「不明」とは書かない)。
+- 回答はすべて日本語。箇条書きにする場合は「・」で始めて改行区切りにする。"""
 
 ANALYSIS_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        "main_industry": {"type": "string", "description": "主な業種・職業"},
-        "specialty": {"type": "string", "description": "具体的な専門分野・得意領域"},
-        "expertise_level": {"type": "string", "enum": ["初級", "中級", "上級", "エキスパート", "判定不能"]},
-        "technical_level_assessment": {"type": "string", "description": "技術レベルの評価と根拠"},
-        "years_of_experience": {"type": "string"},
-        "company_name": {"type": "string", "description": "本人が言及した自身の会社名。複数なら ; 区切り"},
-        "company_url": {"type": "string", "description": "会社リンク。複数なら ; 区切り"},
-        "role_in_company": {"type": "string", "description": "会社での役職 (代表取締役など)"},
-        "capital": {"type": "string", "description": "資本金 (出典付き) または 不明"},
-        "company_count": {"type": "string", "description": "関与・経営している会社数 または 不明"},
-        "business_form": {"type": "string", "enum": ["法人代表", "法人所属", "個人事業主", "副業(会社員)", "不明"]},
-        "contact_info": {"type": "string", "description": "本文・会社サイトから得た連絡先 (電話/メール/住所/予約フォーム/SNS等)"},
-        "portfolio_urls": {"type": "string", "description": "ポートフォリオ・実績URL (; 区切り)"},
-        "key_achievements": {"type": "string"},
-        "strengths": {"type": "string"},
-        "target_clients": {"type": "string", "description": "想定顧客・得意業界"},
-        "languages": {"type": "string"},
-        "lead_score": {"type": "integer", "description": "発注先/営業リードとしての有望度 1-5"},
-        "lead_score_reason": {"type": "string"},
-        "outreach_suggestion": {"type": "string", "description": "連絡・依頼時のアプローチ提案"},
-        "summary": {"type": "string", "description": "100字程度の要約"},
+        "occupation": {"type": "string", "description": "現在の職業・肩書き (一言)"},
+        "current_work": {"type": "string", "description": "現在の仕事内容 (具体的に)"},
+        "career_history": {"type": "string", "description": "経歴 (時系列)"},
+        "past_achievements": {"type": "string", "description": "過去の実績 (数値・固有名詞を含めて)"},
+        "expertise_level": {"type": "string", "enum": ["エキスパート", "上級", "中級", "初級", "判定不能"]},
+        "companies": {
+            "type": "array",
+            "description": "本人が代表・役員・経営・創業・所属している会社。なければ空配列",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "name": {"type": "string", "description": "正式な会社名"},
+                    "role": {"type": "string", "description": "代表取締役 / 取締役 / 創業者 / 所属 など"},
+                    "is_current": {"type": "boolean", "description": "現在も務めている/所属しているか"},
+                    "url": {"type": "string", "description": "本文に書かれた会社URL。なければ空文字"},
+                    "url_source": {"type": "string", "enum": ["プロフィール記載", "会社サイト本文", ""]},
+                },
+                "required": ["name", "role", "is_current", "url", "url_source"],
+            },
+        },
     },
-    "required": [
-        "main_industry", "specialty", "expertise_level", "technical_level_assessment",
-        "years_of_experience", "company_name", "company_url", "role_in_company", "capital",
-        "company_count", "business_form", "contact_info", "portfolio_urls", "key_achievements",
-        "strengths", "target_clients", "languages", "lead_score", "lead_score_reason",
-        "outreach_suggestion", "summary",
-    ],
+    "required": ["occupation", "current_work", "career_history", "past_achievements", "expertise_level", "companies"],
 }
 
 
 def build_user_message(profile, company_pages):
     structured = {k: profile[k] for k in (
-        "name", "profile_url", "status", "catchphrase", "job_types", "services", "hourly_rate",
-        "industries", "prefecture", "skills", "qualifications", "phone", "email", "line",
-        "twitter", "facebook", "youtube", "tiktok", "chatwork", "urls_in_profile", "interview_links",
+        "name", "catchphrase", "job_types", "services", "industries", "prefecture", "skills",
+        "qualifications", "urls_in_profile", "interview_links",
     )}
     parts = [
         "## 構造化データ", json.dumps(structured, ensure_ascii=False, indent=1),
-        "## 詳細プロフィール", profile["profile_text"][:8000] or "(なし)",
-        "## 担当業務・得意業務", profile["work_text"][:4000] or "(なし)",
+        "## 詳細プロフィール", profile["profile_text"][:10000] or "(なし)",
+        "## 担当業務・得意業務", profile["work_text"][:5000] or "(なし)",
     ]
     for p in company_pages:
         parts += [f"## 会社サイト本文 ({p['url']})", p["text"]]
     return "\n\n".join(parts)
 
 
-def analyze_all(model, workers, with_company_sites):
-    from openai import OpenAI
-
-    client = OpenAI()
-    profiles = read_jsonl(PROFILES_FILE)
-    done = read_jsonl(ANALYSIS_FILE)
-    todo = [p for fid, p in profiles.items() if fid not in done]
-    log(f"分析: 全{len(profiles)}件 / 済{len(done)}件 / 残り{len(todo)}件 (model={model})")
-
-    def work(profile):
-        pages = fetch_company_context(profile) if with_company_sites else []
-        for attempt in range(1, 6):
-            try:
-                resp = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": ANALYSIS_PROMPT},
-                        {"role": "user", "content": build_user_message(profile, pages)},
-                    ],
-                    response_format={"type": "json_schema", "json_schema": {
-                        "name": "freelancer_analysis", "strict": True, "schema": ANALYSIS_SCHEMA}},
-                )
-                result = json.loads(resp.choices[0].message.content)
-                result["id"] = profile["id"]
-                result["company_site_pages"] = [p["url"] for p in pages]
-                append_jsonl(ANALYSIS_FILE, result)
-                return profile["name"]
-            except Exception as e:
-                if "invalid_api_key" in str(e) or "model_not_found" in str(e):
-                    raise
-                if attempt == 5:
-                    log(f"  ! 分析失敗 id={profile['id']}: {e}")
-                    return None
-                time.sleep(3 * attempt)
-
+def run_parallel(items, work, workers, label):
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(work, p) for p in todo]
+        futures = [pool.submit(work, item) for item in items]
         for n, fut in enumerate(as_completed(futures), 1):
             fut.result()
-            if n % 20 == 0 or n == len(todo):
-                log(f"  {n}/{len(todo)} 件分析完了")
+            if n % 20 == 0 or n == len(items):
+                log(f"  {n}/{len(items)} 件{label}完了")
 
 
-# ------------------------------------------------------------------ 5. CSV 出力
+def with_retries(fn, what):
+    for attempt in range(1, 6):
+        try:
+            return fn()
+        except Exception as e:
+            if any(s in str(e) for s in ("invalid_api_key", "model_not_found", "insufficient_quota")):
+                raise
+            if attempt == 5:
+                log(f"  ! {what} 失敗: {e}")
+                return None
+            time.sleep(4 * attempt)
+
+
+def analyze_all(client, model, workers, ids):
+    profiles = read_jsonl(PROFILES_FILE)
+    done = read_jsonl(ANALYSIS_FILE)
+    todo = [profiles[i] for i in ids if i in profiles and i not in done]
+    log(f"分析: 対象{len(ids)}件 / 済{len(done)}件 / 残り{len(todo)}件 (model={model})")
+
+    def work(profile):
+        pages = fetch_company_context(profile)
+
+        def call():
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": ANALYSIS_PROMPT},
+                    {"role": "user", "content": build_user_message(profile, pages)},
+                ],
+                response_format={"type": "json_schema", "json_schema": {
+                    "name": "freelancer_analysis", "strict": True, "schema": ANALYSIS_SCHEMA}},
+            )
+            return json.loads(resp.choices[0].message.content)
+
+        result = with_retries(call, f"分析 id={profile['id']}")
+        if result is not None:
+            result.update(id=profile["id"], model=model, company_site_pages=[p["url"] for p in pages])
+            append_jsonl(ANALYSIS_FILE, result)
+
+    run_parallel(todo, work, workers, "分析")
+
+
+# ------------------------------------------------------- 5. 会社URLのWeb検索補完
+COMPANY_SEARCH_PROMPT = """あなたは企業調査の担当者です。Web検索を使って、指定された人物が代表・役員・経営・所属している会社の公式サイトURLを特定してください。
+
+【厳守事項】
+- 同名の別会社と取り違えないこと。代表者名・役員名・事業内容・所在地などが人物情報と一致することを確認できた場合のみ採用する。
+- 公式サイト (コーポレートサイト、または会社が運営する公式サービスサイト) のみを採用する。
+  求人サイト、SNS、フリーランス名鑑、企業データベース、ニュース記事、PR TIMES 等は公式サイトとして扱わない。
+- 確証が持てない場合は url を空文字にし、confidence を low にする。
+- evidence には、一致を確認した根拠 (例: 「会社概要の代表者名が一致」) と参照したURLを日本語で簡潔に書く。"""
+
+COMPANY_SEARCH_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "company_name": {"type": "string"},
+                    "url": {"type": "string"},
+                    "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+                    "evidence": {"type": "string"},
+                },
+                "required": ["company_name", "url", "confidence", "evidence"],
+            },
+        },
+    },
+    "required": ["results"],
+}
+
+
+def is_executive(company):
+    """代表・役員・創業者・パートナーなど、単なる勤務先 (所属) ではない会社か。"""
+    return bool(company["name"].strip()) and not company["role"].strip().startswith("所属") \
+        and not re.match(r"^(某|東証|大手)", company["name"].strip())
+
+
+def companies_missing_url(analysis):
+    return [c for c in analysis.get("companies", []) if is_executive(c) and not c["url"].strip()]
+
+
+def find_company_urls(client, model, workers, ids):
+    profiles = read_jsonl(PROFILES_FILE)
+    analysis = read_jsonl(ANALYSIS_FILE)
+    done = read_jsonl(COMPANY_SEARCH_FILE)
+    todo = [i for i in ids if i in analysis and i not in done and companies_missing_url(analysis[i])]
+    log(f"会社URL検索: 対象{len(todo)}件 (会社名あり・URLなし) / 済{len(done)}件 (model={model})")
+
+    def work(fid):
+        p, a = profiles[fid], analysis[fid]
+        query = {
+            "人物名": p["name"], "在住都道府県": p["prefecture"], "職業": a["occupation"],
+            "現在の仕事内容": a["current_work"][:600], "経歴": a["career_history"][:600],
+            "調べる会社": [{"会社名": c["name"], "役職": c["role"]} for c in companies_missing_url(a)],
+        }
+
+        def call():
+            resp = client.responses.create(
+                model=model,
+                tools=[{"type": "web_search"}],
+                instructions=COMPANY_SEARCH_PROMPT,
+                input=json.dumps(query, ensure_ascii=False, indent=1),
+                text={"format": {"type": "json_schema", "name": "company_urls", "strict": True,
+                                 "schema": COMPANY_SEARCH_SCHEMA}},
+            )
+            return json.loads(resp.output_text)
+
+        result = with_retries(call, f"会社URL検索 id={fid}")
+        if result is not None:
+            append_jsonl(COMPANY_SEARCH_FILE, {"id": fid, "model": model, **result})
+
+    run_parallel(todo, work, workers, "検索")
+
+
+# ------------------------------------------------------------------ 6. CSV 出力
 CSV_COLUMNS = [
-    ("id", "ID"), ("name", "氏名"), ("profile_url", "メイカンプロフィールURL"),
-    ("avatar_url", "アバター画像URL"), ("status", "現在の対応状況"),
-    ("main_industry", "基本業種(AI)"), ("specialty", "専門分野(AI)"),
-    ("expertise_level", "専門性レベル(AI)"), ("technical_level_assessment", "技術レベル評価(AI)"),
-    ("years_of_experience", "経験年数(AI)"),
-    ("company_name", "会社名(AI)"), ("company_url", "会社リンク(AI)"),
-    ("role_in_company", "会社での役職(AI)"), ("capital", "資本金(AI)"),
-    ("company_count", "会社数(AI)"), ("business_form", "事業形態(AI)"),
-    ("phone", "電話番号"), ("email", "メールアドレス"), ("line", "LINE"),
-    ("twitter", "Twitter/X"), ("facebook", "Facebook"), ("youtube", "YouTube"),
-    ("tiktok", "TikTok"), ("chatwork", "ChatWork"), ("contact_info", "連絡先情報(AI抽出)"),
-    ("catchphrase", "キャッチコピー"), ("job_types", "職種"), ("services", "対応業務"),
-    ("hourly_rate", "希望時給単価"), ("skills", "スキル"), ("industries", "得意業界"),
-    ("prefecture", "在住都道府県"), ("qualifications", "資格"), ("likes", "いいね数"),
-    ("blog_count", "ブログ数"), ("urls_in_profile", "プロフィール内URL"),
-    ("portfolio_urls", "ポートフォリオURL(AI)"), ("key_achievements", "主要実績(AI)"),
-    ("strengths", "強み(AI)"), ("target_clients", "想定顧客(AI)"), ("languages", "対応言語(AI)"),
-    ("lead_score", "リード評価1-5(AI)"), ("lead_score_reason", "リード評価理由(AI)"),
-    ("outreach_suggestion", "アプローチ提案(AI)"), ("summary", "要約(AI)"),
-    ("company_site_pages", "参照した会社サイト"), ("profile_text", "詳細プロフィール全文"),
+    "ID", "氏名", "メイカンプロフィールURL", "アバター画像URL", "現在の対応状況",
+    "職業(AI)", "現在の仕事内容(AI)", "経歴(AI)", "過去の実績(AI)", "専門性レベル(AI)",
+    "会社名(AI)", "役職(AI)", "会社リンク(AI)", "会社リンク出典(AI)",
+    "電話番号", "メールアドレス", "LINE", "Twitter/X", "Facebook", "YouTube", "TikTok", "ChatWork",
+    "キャッチコピー", "職種", "希望時給単価", "スキル", "在住都道府県",
 ]
+
+
+def merge_companies(analysis, search):
+    """分析結果の会社一覧に、Web検索で見つかったURL (確度 high/medium) を補完する。"""
+    found = {}
+    for r in (search or {}).get("results", []):
+        if r["url"].startswith("http") and r["confidence"] in ("high", "medium"):
+            found[r["company_name"].strip()] = r
+    companies = []
+    for c in filter(is_executive, analysis.get("companies", [])):  # 過去の勤務先は経歴欄に記載済み
+        c = dict(c)
+        if not c["url"] and c["name"].strip() in found:
+            hit = found[c["name"].strip()]
+            c["url"], c["url_source"] = hit["url"], f"Web検索 (確度: {hit['confidence']})"
+        companies.append(c)
+    return sorted(companies, key=lambda c: not c["is_current"])  # 現在の役職を先に
 
 
 def export_csv(ids):
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     profiles = read_jsonl(PROFILES_FILE)
     analysis = read_jsonl(ANALYSIS_FILE)
+    search = read_jsonl(COMPANY_SEARCH_FILE)
     order = [i for i in ids if i in profiles] + [i for i in profiles if i not in set(ids)]
+
     with CSV_FILE.open("w", encoding="utf-8-sig", newline="") as f:  # Excel で文字化けしないよう BOM 付き
         w = csv.writer(f)
-        w.writerow([label for _, label in CSV_COLUMNS])
+        w.writerow(CSV_COLUMNS)
         for fid in order:
-            row = {**profiles[fid], **analysis.get(fid, {})}
+            p, a = profiles[fid], analysis.get(fid, {})
+            companies = merge_companies(a, search.get(fid))
+            role_of = lambda c: c["role"] + ("" if c["is_current"] else " (過去)")
             w.writerow([
-                "; ".join(v) if isinstance(v := row.get(key, ""), list) else v
-                for key, _ in CSV_COLUMNS
+                fid, p["name"], p["profile_url"], p["avatar_url"], p["status"],
+                a.get("occupation", ""), a.get("current_work", ""), a.get("career_history", ""),
+                a.get("past_achievements", ""), a.get("expertise_level", ""),
+                "; ".join(c["name"] for c in companies),
+                "; ".join(role_of(c) for c in companies),
+                "; ".join(c["url"] for c in companies if c["url"]),
+                "; ".join(c["url_source"] for c in companies if c["url"]),
+                p["phone"], p["email"], p["line"], p["twitter"], p["facebook"], p["youtube"],
+                p["tiktok"], p["chatwork"], p["catchphrase"], p["job_types"], p["hourly_rate"],
+                p["skills"], p["prefecture"],
             ])
-    log(f"CSV出力: {CSV_FILE} ({len(order)}件, 分析済 {sum(1 for i in order if i in analysis)}件)")
+    log(f"CSV出力: {CSV_FILE} ({len(order)}件, 分析済 {sum(1 for i in order if i in analysis)}件, "
+        f"会社URL検索済 {sum(1 for i in order if i in search)}件)")
 
 
 def main():
     load_dotenv(ROOT / ".env")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["scrape", "analyze", "export", "all"])
-    ap.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5.4-mini"))
-    ap.add_argument("--workers", type=int, default=6, help="OpenAI 並列リクエスト数")
-    ap.add_argument("--no-company-sites", action="store_true", help="会社サイトの本文取得を行わない")
-    ap.add_argument("--limit", type=int, default=0, help="テスト用: 先頭N件のみ処理")
+    ap.add_argument("command", choices=["scrape", "analyze", "find-company", "export", "all"])
+    ap.add_argument("--model", default=os.getenv("OPENAI_MODEL", DEFAULT_MODEL))
+    ap.add_argument("--workers", type=int, default=8, help="OpenAI 並列リクエスト数")
+    ap.add_argument("--ids", default="", help="テスト用: カンマ区切りのIDだけ処理")
     args = ap.parse_args()
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if args.command in ("scrape", "all"):
         ids = collect_ids()
+        scrape_profiles(ids)
     else:
         ids = json.loads(IDS_FILE.read_text(encoding="utf-8")) if IDS_FILE.exists() else []
-    if args.limit:
-        ids = ids[: args.limit]
+    target_ids = [i.strip() for i in args.ids.split(",") if i.strip()] or ids
 
-    if args.command in ("scrape", "all"):
-        scrape_profiles(ids)
-    if args.command in ("analyze", "all"):
+    if args.command in ("analyze", "find-company", "all"):
         if not os.getenv("OPENAI_API_KEY"):
             sys.exit("OPENAI_API_KEY が .env に設定されていません")
-        analyze_all(args.model, args.workers, not args.no_company_sites)
-    if args.command in ("export", "all", "analyze", "scrape"):
-        export_csv(ids)
+        from openai import OpenAI
+        client = OpenAI()
+        if args.command in ("analyze", "all"):
+            analyze_all(client, args.model, args.workers, target_ids)
+        if args.command in ("find-company", "all"):
+            find_company_urls(client, args.model, args.workers, target_ids)
+    export_csv(ids)
 
 
 if __name__ == "__main__":

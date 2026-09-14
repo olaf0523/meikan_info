@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --ink: #1d1c1a;
+  --muted: #6d6a64;
+  --line: #e3e0d8;
+  --accent: #3451c6;
+  --accent-soft: #eceffc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113;
+    --surface: #1b1b1e;
+    --ink: #ecebe8;
+    --muted: #9c9993;
+    --line: #2d2d31;
+    --accent: #93a6ff;
+    --accent-soft: #232845;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo,
+    system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+dialog::backdrop {
+  background: rgb(10 10 14 / 0.55);
+  backdrop-filter: blur(3px);
+}
