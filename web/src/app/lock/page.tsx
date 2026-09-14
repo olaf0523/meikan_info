@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LockScreen from "@/components/LockScreen";
+import LockScreen from "@/components/lock/LockScreen";
 import "./lock.css";
 
 export const metadata: Metadata = {

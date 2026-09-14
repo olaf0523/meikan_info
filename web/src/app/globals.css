@@ -157,7 +157,13 @@ html {
   scrollbar-color: rgb(214 178 106 / 0.45) transparent;
 }
 
-/* ------------------------------------------------ 解錠直後: 光の中からメイン画面が現れる */
+/* ------------------------------------------------ 解錠直後: 白金の光の中心から円形にメイン画面が開く */
+
+@property --reveal {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0%;
+}
 
 .unlock-reveal {
   display: none;
@@ -169,16 +175,35 @@ html[data-unlocked] .unlock-reveal {
   inset: 0;
   z-index: 200;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, #fffdf6 0%, #fff1cf 42%, #f5d28e 100%);
-  animation: unlock-reveal 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  background: radial-gradient(circle at 50% 46%, #fffef9 0%, #fff4d2 38%, #f7d894 100%);
+  mask-image: radial-gradient(circle at 50% 46%, transparent var(--reveal), black calc(var(--reveal) + 6%));
+  animation: unlock-iris 1.7s cubic-bezier(0.65, 0, 0.35, 1) 0.2s both;
 }
 
-@keyframes unlock-reveal {
-  0%,
-  25% {
+/* 開いていく円の縁に光の輪 */
+html[data-unlocked] .unlock-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 46%,
+    transparent calc(var(--reveal) - 1%),
+    rgb(255 240 200 / 0.95) var(--reveal),
+    rgb(255 214 140 / 0.5) calc(var(--reveal) + 2%),
+    transparent calc(var(--reveal) + 6%)
+  );
+}
+
+@keyframes unlock-iris {
+  from {
+    --reveal: 0%;
     opacity: 1;
   }
-  100% {
+  85% {
+    opacity: 1;
+  }
+  to {
+    --reveal: 150%;
     opacity: 0;
     visibility: hidden;
   }
