@@ -40,6 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# generated from ../output/meikan_freelancers.csv
+# generated from data/meikan_freelancers.csv at build time
 /data/freelancers.json
 /public/data/

@@ -31,7 +31,6 @@ export default function Avatar({ src, name, size, className = "" }: Props) {
       alt={name}
       width={size}
       height={size}
-      sizes={`${size}px`}
       style={style}
       onError={() => setFailed(true)}
       className={`shrink-0 rounded-full object-cover ring-1 ring-line ${className}`}

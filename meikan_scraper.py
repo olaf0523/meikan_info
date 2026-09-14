@@ -541,7 +541,8 @@ def export_csv(ids):
             companies = merge_companies(a, search.get(fid))
             role_of = lambda c: c["role"] + ("" if c["is_current"] else " (過去)")
             w.writerow([
-                fid, p["name"], p["profile_url"], p["avatar_url"], p["status"],
+                # 一部の画像URLはサイト側で /storage/storage/ と重複しており 404 になるため補正
+                fid, p["name"], p["profile_url"], p["avatar_url"].replace("/storage/storage/", "/storage/"), p["status"],
                 a.get("occupation", ""), a.get("current_work", ""), a.get("career_history", ""),
                 a.get("past_achievements", ""), a.get("expertise_level", ""),
                 "; ".join(c["name"] for c in companies),

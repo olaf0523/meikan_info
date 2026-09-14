@@ -1,2 +1,15 @@
-
+# secrets (OpenAI API key)
 .env
+.env.*
+
+# python
+.venv/
+__pycache__/
+
+# scraper cache & logs (大容量・再生成可能)
+cache/
+*.log
+
+# web app (web/.gitignore も参照)
+web/node_modules/
+web/.next/

@@ -1,6 +1,8 @@
-// CSV (../output/meikan_freelancers.csv) を読み込み、サイト用の JSON を生成する。
+// CSV (data/meikan_freelancers.csv) を読み込み、サイト用の JSON を生成する。
 //   data/freelancers.json              一覧表示・検索用の軽量データ (Server Component が読む)
 //   public/data/freelancers/{id}.json  モーダルで表示する全項目 (クリック時に取得)
+// CSV は Vercel でもビルドできるよう web プロジェクト内に置く。
+// スクレイパーで CSV を更新したら `npm run sync-csv` で ../output からコピーする。
 // CSV の場所は環境変数 MEIKAN_CSV で変更できる。
 
 import fs from "node:fs";
@@ -9,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import Papa from "papaparse";
 
 const webRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const csvPath = process.env.MEIKAN_CSV ?? path.join(webRoot, "..", "output", "meikan_freelancers.csv");
+const csvPath = process.env.MEIKAN_CSV ?? path.join(webRoot, "data", "meikan_freelancers.csv");
 const indexPath = path.join(webRoot, "data", "freelancers.json");
 const detailDir = path.join(webRoot, "public", "data", "freelancers");
 
@@ -25,8 +27,10 @@ if (errors.length) {
   process.exit(1);
 }
 
-// 画像未登録のフリーランスは "https://freelance-meikan.com/storage/" だけが入っている
-const avatarOf = (url) => (url && /\.(jpe?g|png|gif|webp)$/i.test(url) ? url : null);
+// 画像未登録のフリーランスは "https://freelance-meikan.com/storage/" だけが入っている。
+// また一部は "/storage/storage/" と重複しており 404 になるため補正する。
+const avatarOf = (url) =>
+  url && /\.(jpe?g|png|gif|webp)$/i.test(url) ? url.replace("/storage/storage/", "/storage/") : null;
 const col = (row, key) => (row[key] ?? "").trim();
 
 fs.rmSync(detailDir, { recursive: true, force: true });
