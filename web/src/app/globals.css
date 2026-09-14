@@ -1,25 +1,18 @@
 @import "tailwindcss";
 
+/* 夜空に浮かぶ黄金の都をテーマにした、濃紺ガラス × ゴールドのデザイン (単一テーマ) */
 :root {
-  --bg: #f5f4f0;
-  --surface: #ffffff;
-  --ink: #1d1c1a;
-  --muted: #6d6a64;
-  --line: #e3e0d8;
-  --accent: #3451c6;
-  --accent-soft: #eceffc;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111113;
-    --surface: #1b1b1e;
-    --ink: #ecebe8;
-    --muted: #9c9993;
-    --line: #2d2d31;
-    --accent: #93a6ff;
-    --accent-soft: #232845;
-  }
+  --bg: #060913;
+  --surface: rgb(9 13 27 / 0.74);
+  --ink: #f3e8cf;
+  --muted: #b2a88f;
+  --line: rgb(215 180 110 / 0.24);
+  --accent: #e3c078;
+  --accent-soft: rgb(227 192 120 / 0.12);
+  --gold-light: #fbeec0;
+  --gold: #dcb66c;
+  --gold-deep: #a8792f;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -30,16 +23,172 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-gold-light: var(--gold-light);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
   --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo,
     system-ui, sans-serif;
+  --font-serif: var(--font-mincho), "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
 }
+
+@theme {
+  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-pop: pop 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-slide-in: slide-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+}
+
+/* ------------------------------------------------------------ 共通パーツ */
+
+/** 濃紺のガラスパネル + 金の縁取り */
+@utility glass {
+  background: linear-gradient(160deg, rgb(16 22 44 / 0.86), rgb(6 9 20 / 0.92));
+  border: 1px solid rgb(214 178 106 / 0.5);
+  box-shadow:
+    inset 0 1px 0 rgb(255 238 196 / 0.08),
+    0 24px 60px -24px rgb(0 0 0 / 0.85),
+    0 0 26px -8px rgb(226 184 104 / 0.3);
+  backdrop-filter: blur(14px) saturate(1.1);
+}
+
+/** 金の細い枠線 (タグ・入力欄・会社欄など) */
+@utility gold-outline {
+  border: 1px solid rgb(220 184 112 / 0.5);
+  background: rgb(8 12 26 / 0.6);
+  box-shadow: inset 0 0 14px rgb(226 186 106 / 0.07);
+}
+
+/** 金のボタン・選択状態 */
+@utility gold-fill {
+  background: linear-gradient(180deg, #f7df9f 0%, #ddb466 52%, #b3863c 100%);
+  color: #1c1508;
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgb(255 248 222 / 0.6),
+    0 8px 22px -8px rgb(226 176 84 / 0.65);
+}
+
+/** 金のグラデーション文字 */
+@utility gold-text {
+  background: linear-gradient(180deg, #fff5d6 0%, #f1d593 48%, #c8993f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/** アバターの金のリング */
+@utility gold-ring {
+  box-shadow:
+    0 0 0 2px #dcb66c,
+    0 0 0 4px rgb(8 12 26 / 0.9),
+    0 0 26px rgb(232 192 112 / 0.45);
+}
+
+/* ------------------------------------------------------------ 背景 */
 
 body {
   background: var(--bg);
   color: var(--ink);
 }
 
+/** サイト全体の背景 (固定表示) */
+.site-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgb(4 7 16 / 0.1) 0%, rgb(4 7 16 / 0.42) 38%, rgb(4 7 16 / 0.8) 100%),
+    radial-gradient(90% 60% at 50% 45%, rgb(4 7 16 / 0.45), transparent 75%),
+    url("/bg/fantasy-2400.webp");
+  background-size: cover;
+  background-position: center top;
+}
+
+/** モーダル・パネル用の背景 (上部に景色を見せ、下へ行くほど暗く) */
+.scene-bg {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgb(4 7 16 / 0.05) 0%, rgb(4 7 16 / 0.55) 16rem, rgb(4 7 16 / 0.88) 34rem),
+    url("/bg/fantasy-1280.webp");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  .site-bg {
+    background-image:
+      linear-gradient(180deg, rgb(4 7 16 / 0.15) 0%, rgb(4 7 16 / 0.5) 40%, rgb(4 7 16 / 0.85) 100%),
+      url("/bg/fantasy-1280.webp");
+    background-position: 72% top;
+  }
+}
+
+html {
+  scrollbar-color: rgb(214 178 106 / 0.45) transparent;
+}
+
+::selection {
+  background: rgb(226 190 116 / 0.35);
+  color: #fff8e6;
+}
+
 dialog::backdrop {
-  background: rgb(10 10 14 / 0.55);
-  backdrop-filter: blur(3px);
+  background: rgb(3 5 12 / 0.7);
+  backdrop-filter: blur(6px);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+select option {
+  background: #0b1020;
+  color: var(--ink);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
